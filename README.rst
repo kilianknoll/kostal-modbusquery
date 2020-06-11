@@ -47,7 +47,7 @@ Disclaimer
 .. Warning::
 
    Please note that any incorrect or careless usage of this module as well as
-   errors in the implementation can damage your heat pump!
+   errors in the implementation may harm your Inverter !
 
    Therefore, the author does not provide any guarantee or warranty concerning
    to correctness, functionality or performance and does not accept any liability
