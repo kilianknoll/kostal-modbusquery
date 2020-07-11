@@ -61,6 +61,9 @@
 # Update March 3 2020
 # Enhanced to clean erratic reads greater than 32767 from register 575
 # Added Register 56 (Inverter Status)
+#
+# Update July 11 2020
+# Added Option to publish to mqtt
 
 import pymodbus
 from pymodbus.client.sync import ModbusTcpClient
@@ -860,6 +863,7 @@ class kostal_modbusquery:
                 self.Adr575[3] = 0 
 
 
+
     except Exception as ex:
             print ("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
             print ("XXX- Hit the following error :From subroutine kostal_modbusquery :", ex)
@@ -868,6 +872,7 @@ class kostal_modbusquery:
 
 
 if __name__ == "__main__":  
+    MQTT_Active = 1
     print ("Starting QUERY .......... ")
     try:
         Kostalvalues =[]
@@ -896,4 +901,33 @@ if __name__ == "__main__":
     PowertoGrid = round(KostalVal['Inverter Generation Power (actual)'] - TotalHomeconsumption,1)
     print ("Powerfromgrid (-) /To Grid (+) is        :", PowertoGrid)
     print ("Total current Home consumption is        :", TotalHomeconsumption)
+    print ("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+    if MQTT_Active == 1:
+        try:    
+            import paho.mqtt.client as mqtt
+            broker_address="192.168.178.39"                                                 #IP-Adress of the mqtt broker we subscribe to
+            #Publish to mqtt start
+            print ("Now publishing data to MQTT Broker with IP Adress : ", broker_address)
+
+            modbusmqttclient = mqtt.Client("MyModbusMQTTClient")                            #create new instance
+            modbusmqttclient.connect(broker_address)                                        #connect to broker
+            params = KostalVal.keys()                                                       #We then need to update our params to include the Numpulses key 
+            
+            if len(params) > 1:
+                for p in sorted(params):
+                    #print ("entering Kostal mqtt publish")
+                    print("{:{width}}: {}".format(p, KostalVal[p], width=len(max(params, key=len))))
+                    pass
+                    TOPIC = ("Haus/Kostal/"+p)
+                    modbusmqttclient.publish(TOPIC,KostalVal[p])
+            elif len(params) == 1:
+                print(val[params[0]])
+                print ("Nothing received from Kostal... ? ") 
+        except Exception as ErrorMQTT:
+            print ("Error Kostal MQTT publish", ErrorMQTT)
+
+        #End Publish to mqtt
+        
+        
+    print 
     
