@@ -64,6 +64,8 @@
 #
 # Update July 11 2020
 # Added Option to publish to mqtt
+# Update July 24 2020
+# Corrected error in ReadS16 (Registers 575 and 582 should now read proper negative values)
 
 import pymodbus
 from pymodbus.client.sync import ModbusTcpClient
@@ -652,11 +654,11 @@ class kostal_modbusquery:
         #print ("Here is what I got from ReadU32new", result_U32register)
         return(result_U32register)
     #-----------------------------------------    
-    # Routine to read a U32 from one address with 2 registers 
+    # Routine to read a S16 from one address with 1 register
     def ReadS16(self,myadr_dec):
         r1=self.client.read_holding_registers(myadr_dec,1,unit=71)
         S16register = BinaryPayloadDecoder.fromRegisters(r1.registers, byteorder=Endian.Big, wordorder=Endian.Little)
-        result_S16register = S16register.decode_16bit_uint()
+        result_S16register = S16register.decode_16bit_int()
         return(result_S16register)
                           
         
@@ -859,8 +861,6 @@ class kostal_modbusquery:
             
                         
             self.client.close()
-            if (self.Adr575[3] >32766):                 #Sometimes we hit the max value of 32767 - which implies a zero value
-                self.Adr575[3] = 0 
 
 
 
