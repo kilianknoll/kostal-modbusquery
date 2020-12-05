@@ -64,8 +64,50 @@
 #
 # Update July 11 2020
 # Added Option to publish to mqtt
+#
 # Update July 24 2020
 # Corrected error in ReadS16 (Registers 575 and 582 should now read proper negative values)
+#
+#
+# Update Dec 5th 2020
+# Added the following Read-only Registers
+#(based on Kostal Modbus interface description from Sep 17 2020)
+# For Firmware versions 1.4.4 and up
+#1046 Total DC charge energy (DC-side to battery) Wh R32 2 RO 0x03 0x418
+#1048 Total DC discharge energy (DC-side from battery) Wh R32 2 RO 0x03 0x41A 
+#1050 Total AC charge energy (AC-side to battery) Wh R32 2 RO 0x03 0x41C
+#1052 Total AC discharge energy (battery to grid) Wh R32 2 RO 0x03 0x41E
+#1054 Total AC charge energy (grid to battery) Wh R32 2 RO 0x03 0x420
+#1056 Total DC PV energy (sum of all PV inputs) Wh R32 2 RO 0x03 0x422
+#1058 Total DC energy from PV1 Wh R32 2 RO 0x03 0x424
+#1060 Total DC energy from PV2 Wh R32 2 RO 0x03 0x426
+#1062 Total DC energy from PV3 Wh R32 2 RO 0x03 0x428
+#1064 Total energy AC-side to grid Wh R32 2 RO 0x03 0x42A
+#1066 Total DC power (sum of all PV inputs) W R32 2 RO 0x03
+#
+##1024 Battery charge power (AC) setpoint Note1 W S16 1 WO 0x06
+#Added the Following Registers as  "Read-only" readout:
+#1025 Power Scale Factor Note2 - S16 1 RO 0x03
+#1026 Battery charge power (AC) setpoint, absolute
+#1028 Battery charge current (DC) setpoint, relative Note 1,3 % R32 2 RW 0x03/0x10
+#1030 Battery charge power (AC) setpoint, relativeNote 1,3% R32 2 RW 0x03/0x10
+#1032 Battery charge current (DC) setpoint, absoluteNote 1A R32 2 RW 0x03/0x10
+#1034 Battery charge power (DC) setpoint, absoluteNote 1W R32 2 RW 0x03/0x10
+#1036 Battery charge power (DC) setpoint, relativeNote 1,3% R32 2 RW 0x03/0x10
+#1038 Battery max. charge power limit, absolute W R32 2 RW 0x03/0x10
+#1040 Battery max. discharge power limit, absolute W R32 2 RW 0x03/0x10
+#1042 Minimum SOC % R32 2 RW 0x03/0x10
+#1044 Maximum SOC % R32 2 RW 0x03/0x10
+#1068 Battery work capacity Wh R32 2 RO 0x03
+#1070 Battery serial number - U32 2 RO 0x03
+#1076 Maximum charge power limit (read-out frombattery)W R32 2 RO 0x03
+#1078 Maximum discharge power limit (read-out frombattery)W R32 2 RO 0x03
+#1080 Battery management mode Note4 - U8 1 RW 0x03/0x06
+#1082 Installed sensor type Note 5 - U8 1 RO 0x03
+#
+#Updated / Created String Read Routines ReadStr8 and ReadStr32
+
+
 
 import pymodbus
 from pymodbus.client.sync import ModbusTcpClient
@@ -605,14 +647,231 @@ class kostal_modbusquery:
         self.Adr588.append("U16")
         self.Adr588.append(0)
 
+        self.Adr768=[]
+        self.Adr768 =[768]
+        self.Adr768.append("Productname")
+        self.Adr768.append("Strg32")
+        self.Adr768.append(0) 
+
+        self.Adr800=[]
+        self.Adr800 =[800]
+        self.Adr800.append("Power Class")
+        self.Adr800.append("Strg32")
+        self.Adr800.append(0) 
+
+        self.Adr1024=[]
+        self.Adr1024 =[1024]
+        self.Adr1024.append("Battery charge power (AC) setpoint")
+        self.Adr1024.append("S16")
+        self.Adr1024.append(0)  
+
+        self.Adr1025=[]
+        self.Adr1025 =[1025]
+        self.Adr1025.append("Power Scale Factor")
+        self.Adr1025.append("S16")
+        self.Adr1025.append(0)  
+        
+
+        self.Adr1026=[]
+        self.Adr1026 =[1026]
+        self.Adr1026.append("Battery charge power (AC) setpoint, absolute")
+        self.Adr1026.append("R32")
+        self.Adr1026.append(0)  
+
+        self.Adr1028=[]
+        self.Adr1028 =[1028]
+        self.Adr1028.append("Battery charge current (DC) setpoint, relative")
+        self.Adr1028.append("R32")
+        self.Adr1028.append(0)  
+
+        self.Adr1030=[]
+        self.Adr1030 =[1030]
+        self.Adr1030.append("Battery charge power (AC) setpoint, relative")
+        self.Adr1030.append("R32")
+        self.Adr1030.append(0)  
+                
+
+        self.Adr1032=[]
+        self.Adr1032 =[1032]
+        self.Adr1032.append("Battery charge current (DC) setpoint, absolute")
+        self.Adr1032.append("R32")
+        self.Adr1032.append(0)  
+
+        self.Adr1034=[]
+        self.Adr1034 =[1034]
+        self.Adr1034.append("Battery charge power (DC) setpoint, absolute")
+        self.Adr1034.append("R32")
+        self.Adr1034.append(0)  
+
+
+        self.Adr1036=[]
+        self.Adr1036 =[1036]
+        self.Adr1036.append("Battery charge power (DC) setpoint, relative")
+        self.Adr1036.append("R32")
+        self.Adr1036.append(0)  
+                                                                                                
+        
+        self.Adr1038=[]
+        self.Adr1038 =[1038]
+        self.Adr1038.append("Battery max charge power limit, absolute")
+        self.Adr1038.append("U32")
+        self.Adr1038.append(0)  
+        
+        
+        self.Adr1040=[]
+        self.Adr1040 =[1040]
+        self.Adr1040.append("Battery max discharge power limit, absolute")
+        self.Adr1040.append("U32")
+        self.Adr1040.append(0)  
+               
+        self.Adr1042=[]
+        self.Adr1042 =[1042]
+        self.Adr1042.append("Minimum SOC")
+        self.Adr1042.append("U32")
+        self.Adr1042.append(0)  
+                        
+        self.Adr1044=[]
+        self.Adr1044 =[1044]
+        self.Adr1044.append("Maximum SOC")
+        self.Adr1044.append("U32")
+        self.Adr1044.append(0)  
+                        
+                
+        self.Adr1046=[]
+        self.Adr1046 =[1046]
+        self.Adr1046.append("Total DC charge energy (DC-side to battery)")
+        self.Adr1046.append("R32")
+        self.Adr1046.append(0) 
+      
+        
+        self.Adr1048=[]
+        self.Adr1048 =[1048]
+        self.Adr1048.append("Total DC discharge energy (DC-side from battery)")
+        self.Adr1048.append("R32")
+        self.Adr1048.append(0) 
+
+
+        self.Adr1050=[]
+        self.Adr1050 =[1050]
+        self.Adr1050.append("Total AC charge energy (AC-side to battery)")
+        self.Adr1050.append("R32")
+        self.Adr1050.append(0) 
+
+
+        self.Adr1052=[]
+        self.Adr1052 =[1052]
+        self.Adr1052.append("Total AC discharge energy (Battery to grid)")
+        self.Adr1052.append("R32")
+        self.Adr1052.append(0) 
+
+
+        self.Adr1054=[]
+        self.Adr1054 =[1054]
+        self.Adr1054.append("Total AC charge energy (grid to battery)")
+        self.Adr1054.append("R32")
+        self.Adr1054.append(0) 
+
+
+        self.Adr1056=[]
+        self.Adr1056 =[1056]
+        self.Adr1056.append("Total DC PV energy (sum of all PV inputs)")
+        self.Adr1056.append("R32")
+        self.Adr1056.append(0) 
+
+
+        self.Adr1058=[]
+        self.Adr1058 =[1058]
+        self.Adr1058.append("Total DC energy from PV1")
+        self.Adr1058.append("R32")
+        self.Adr1058.append(0) 
+
+
+        self.Adr1060=[]
+        self.Adr1060 =[1060]
+        self.Adr1060.append("Total DC energy from PV2")
+        self.Adr1060.append("R32")
+        self.Adr1060.append(0) 
+
+        self.Adr1062=[]
+        self.Adr1062 =[1062]
+        self.Adr1062.append("Total DC energy from PV3")
+        self.Adr1062.append("R32")
+        self.Adr1062.append(0) 
+
+
+        self.Adr1064=[]
+        self.Adr1064 =[1064]
+        self.Adr1064.append("Total energy AC-side to grid")
+        self.Adr1064.append("R32")
+        self.Adr1064.append(0) 
+                          
+
+        self.Adr1066=[]
+        self.Adr1066 =[1066]
+        self.Adr1066.append("Total DC power (sum of all PV inputs)")
+        self.Adr1066.append("R32")
+        self.Adr1066.append(0) 
+        
+
+        self.Adr1068=[]
+        self.Adr1068 =[1068]
+        self.Adr1068.append("Battery work capacity")
+        self.Adr1068.append("R32")
+        self.Adr1068.append(0) 
+
+        self.Adr1070=[]
+        self.Adr1070 =[1070]
+        self.Adr1070.append("Battery serial number")
+        self.Adr1070.append("U32")
+        self.Adr1070.append(0) 
+
+        self.Adr1076=[]
+        self.Adr1076 =[1076]
+        self.Adr1076.append("Maximum charge power limit (readout from battery)")
+        self.Adr1076.append("R32")
+        self.Adr1076.append(0) 
+
+        self.Adr1078=[]
+        self.Adr1078 =[1078]
+        self.Adr1078.append("Maximum discharge power limit (readout from battery)")
+        self.Adr1078.append("R32")
+        self.Adr1078.append(0)        
+
+        self.Adr1080=[]
+        self.Adr1080 =[1080]
+        self.Adr1080.append("Battery management mode")
+        self.Adr1080.append("U8")
+        self.Adr1080.append(0)                         
+
+        self.Adr1082=[]
+        self.Adr1082 =[1082]
+        self.Adr1082.append("Installed sensor type")
+        self.Adr1082.append("U8")
+        self.Adr1082.append(0)                         
+                            
+        
+        
+
+        
+        
+
       
     #-----------------------------------------
     # Routine to read a string from one address with 8 registers 
     def ReadStr8(self,myadr_dec):   
         r1=self.client.read_holding_registers(myadr_dec,8,unit=71)
         STRG8Register = BinaryPayloadDecoder.fromRegisters(r1.registers, byteorder=Endian.Big)
-        result_STRG8Register =STRG8Register.decode_string(8)      
+        result_STRG8Register =STRG8Register.decode_string(8)  
+        result_STRG8Register = bytes(filter(None,result_STRG8Register))    #Get rid of the "\X00"s
         return(result_STRG8Register) 
+    #-----------------------------------------
+    # Routine to read a string from one address with 32 registers 
+    def ReadStr32(self,myadr_dec):   
+        r1=self.client.read_holding_registers(myadr_dec,32,unit=71)
+        STRG32Register = BinaryPayloadDecoder.fromRegisters(r1.registers, byteorder=Endian.Big)
+        result_STRG32Register =STRG32Register.decode_string(32)
+        result_STRG32Register =bytes(filter(None,result_STRG32Register))    #Get rid of the "\X00"s
+        return(result_STRG32Register) 
     #-----------------------------------------
     # Routine to read a Float from one address with 2 registers     
     def ReadFloat(self,myadr_dec):
@@ -654,12 +913,26 @@ class kostal_modbusquery:
         #print ("Here is what I got from ReadU32new", result_U32register)
         return(result_U32register)
     #-----------------------------------------    
-    # Routine to read a S16 from one address with 1 register
+    # Routine to read a S16 from one address with 1 registers 
     def ReadS16(self,myadr_dec):
         r1=self.client.read_holding_registers(myadr_dec,1,unit=71)
         S16register = BinaryPayloadDecoder.fromRegisters(r1.registers, byteorder=Endian.Big, wordorder=Endian.Little)
         result_S16register = S16register.decode_16bit_int()
         return(result_S16register)
+    #-----------------------------------------    
+    # Routine to read a U8 from one address with 1 registers 
+    def ReadU8(self,myadr_dec):
+        r1=self.client.read_holding_registers(myadr_dec,1,unit=71)
+        U8register = BinaryPayloadDecoder.fromRegisters(r1.registers, byteorder=Endian.Big, wordorder=Endian.Little)
+        #result_U8register = U8register.decode_8bit_uint()
+        result_U8register = U8register.decode_16bit_uint()
+        return(result_U8register)       
+
+    def WriteS16(self,myadr_dec,value):
+        r1=self.client.write_registers(myadr_dec,value,unit=71)
+        #S16register = BinaryPayloadDecoder.fromRegisters(r1.registers, byteorder=Endian.Big, wordorder=Endian.Little)
+        #result_S16register = S16register.decode_16bit_uint()
+        return(r1)        
                           
         
     try:
@@ -765,6 +1038,48 @@ class kostal_modbusquery:
             
             self.Adr586[3]=self.ReadU32(self.Adr586[0])
             self.Adr588[3]=self.ReadU16_1(self.Adr588[0])
+            
+            
+            
+            self.Adr768[3]=self.ReadStr32(self.Adr768[0])
+            self.Adr800[3]=self.ReadStr32(self.Adr800[0])
+            self.Adr1024[3]=self.ReadS16(self.Adr1024[0])
+            self.Adr1025[3]=self.ReadS16(self.Adr1025[0])
+            self.Adr1026[3]=self.ReadFloat(self.Adr1026[0])
+            self.Adr1028[3]=self.ReadFloat(self.Adr1028[0])
+            self.Adr1030[3]=self.ReadFloat(self.Adr1030[0])
+            self.Adr1032[3]=self.ReadFloat(self.Adr1032[0])
+            self.Adr1034[3]=self.ReadFloat(self.Adr1034[0])
+            self.Adr1036[3]=self.ReadFloat(self.Adr1036[0])
+            self.Adr1038[3]=self.ReadFloat(self.Adr1038[0])
+            self.Adr1040[3]=self.ReadFloat(self.Adr1040[0])
+            self.Adr1042[3]=self.ReadFloat(self.Adr1042[0])
+            self.Adr1044[3]=self.ReadFloat(self.Adr1044[0])
+            self.Adr1068[3]=self.ReadFloat(self.Adr1068[0])
+            self.Adr1070[3]=self.ReadU32(self.Adr1070[0])
+            self.Adr1076[3]=self.ReadFloat(self.Adr1076[0])
+            self.Adr1078[3]=self.ReadFloat(self.Adr1078[0])
+            
+            self.Adr1080[3]=self.ReadU8(self.Adr1080[0])
+            self.Adr1082[3]=self.ReadU8(self.Adr1082[0])
+            
+            
+            self.Adr1046[3]=self.ReadFloat(self.Adr1046[0])
+            self.Adr1048[3]=self.ReadFloat(self.Adr1048[0])
+            self.Adr1050[3]=self.ReadFloat(self.Adr1050[0])            
+            self.Adr1052[3]=self.ReadFloat(self.Adr1052[0]) 
+            self.Adr1054[3]=self.ReadFloat(self.Adr1054[0]) 
+            self.Adr1056[3]=self.ReadFloat(self.Adr1056[0]) 
+            self.Adr1058[3]=self.ReadFloat(self.Adr1058[0])             
+            self.Adr1060[3]=self.ReadFloat(self.Adr1060[0])             
+            self.Adr1062[3]=self.ReadFloat(self.Adr1062[0])
+            self.Adr1064[3]=self.ReadFloat(self.Adr1064[0])            
+            self.Adr1066[3]=self.ReadFloat(self.Adr1066[0])
+           
+            
+            print ("XXXXXXXXXXXXXXXXXXXXX-----")
+            self.Adr1038[3]=self.ReadFloat(self.Adr1038[0])
+            print ("XXXXXXXXXXXXXXXXXXXXXXXXXX")
        
             
             self.KostalRegister=[]
@@ -859,8 +1174,49 @@ class kostal_modbusquery:
             self.KostalRegister.append(self.Adr586)
             self.KostalRegister.append(self.Adr588)
             
+            self.KostalRegister.append(self.Adr768)
+            self.KostalRegister.append(self.Adr800)
+            
+            self.KostalRegister.append(self.Adr1024)
+            self.KostalRegister.append(self.Adr1025)
+            self.KostalRegister.append(self.Adr1026)
+            self.KostalRegister.append(self.Adr1028)
+            self.KostalRegister.append(self.Adr1030)
+            self.KostalRegister.append(self.Adr1032)
+            self.KostalRegister.append(self.Adr1034)
+            self.KostalRegister.append(self.Adr1036)
+            self.KostalRegister.append(self.Adr1038)
+            self.KostalRegister.append(self.Adr1040)
+            self.KostalRegister.append(self.Adr1042)
+            self.KostalRegister.append(self.Adr1044)
+            self.KostalRegister.append(self.Adr1068)
+            self.KostalRegister.append(self.Adr1070)
+            self.KostalRegister.append(self.Adr1076)
+            self.KostalRegister.append(self.Adr1078)
+            self.KostalRegister.append(self.Adr1080)
+            self.KostalRegister.append(self.Adr1082)
+            
+            
+            self.KostalRegister.append(self.Adr1046)
+            self.KostalRegister.append(self.Adr1048)
+            self.KostalRegister.append(self.Adr1050)
+            self.KostalRegister.append(self.Adr1052)
+            self.KostalRegister.append(self.Adr1054)
+            self.KostalRegister.append(self.Adr1056)
+            self.KostalRegister.append(self.Adr1058)
+            self.KostalRegister.append(self.Adr1060)
+            self.KostalRegister.append(self.Adr1062)
+            self.KostalRegister.append(self.Adr1064)
+            self.KostalRegister.append(self.Adr1066)
+
+            
+            
+            self.KostalRegister.append(self.Adr1038)
+            
                         
             self.client.close()
+            if (self.Adr575[3] >32766):                 #Sometimes we hit the max value of 32767 - which implies a zero value
+                self.Adr575[3] = 0 
 
 
 
@@ -926,8 +1282,4 @@ if __name__ == "__main__":
         except Exception as ErrorMQTT:
             print ("Error Kostal MQTT publish", ErrorMQTT)
 
-        #End Publish to mqtt
-        
-        
-    print 
     
