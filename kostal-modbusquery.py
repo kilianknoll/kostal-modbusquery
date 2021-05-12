@@ -121,7 +121,7 @@ import collections
 class kostal_modbusquery:
     def __init__(self):
         #Change the IP address and port to suite your environment:
-        self.inverter_ip="192.168.178.31"
+        self.inverter_ip="192.168.178.36"
         self.inverter_port="1502"
         #No more changes required beyond this point
         self.KostalRegister = []
@@ -216,7 +216,7 @@ class kostal_modbusquery:
         self.Adr[531] = ["Inverter Max Power", "Float"]
         self.Adr[575] = ["Inverter Generation Power (actual)", "S16"]
         self.Adr[577] = ["Generation Energy", "U32"]
-        self.Adr[528] = ["Total energy", "U32"]
+        # self.Adr[578] = ["Total energy", "U32"]
         self.Adr[580] = ["Battery Net Capacity", "U32"]
         self.Adr[582] = ["Actual battery charge-discharge power", "S16"]
         self.Adr[586] = ["Battery Firmware", "U32"]
@@ -362,6 +362,8 @@ class kostal_modbusquery:
                     reader = self.ReadS16
                 elif dtype == "Strg32":
                     reader = self.ReadStr32
+                elif dtype == "R32":
+                    reader = self.ReadFloat
                 else:
                     raise ValueError("Data type not known: %s"%dtype)
 
