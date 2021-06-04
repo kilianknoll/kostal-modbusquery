@@ -106,6 +106,12 @@
 #1082 Installed sensor type Note 5 - U8 1 RO 0x03
 #
 #Updated / Created String Read Routines ReadStr8 and ReadStr32
+#
+# Updated June 4 2021
+# Merged Pullrequest from https://github.com/carichte/kostal-modbusquery
+# Added commandline Option to write R32 Registers (for battery charge/discharge manipulation)
+
+
 
 
 
@@ -113,15 +119,17 @@ import pymodbus
 from pymodbus.client.sync import ModbusTcpClient
 from pymodbus.constants import Endian
 from pymodbus.payload import BinaryPayloadDecoder
+from pymodbus.payload import BinaryPayloadBuilder
 #from pprint import pprint
 import time
 import collections
+import argparse
 
 
 class kostal_modbusquery:
     def __init__(self):
         #Change the IP address and port to suite your environment:
-        self.inverter_ip="192.168.178.36"
+        self.inverter_ip="192.168.178.41"
         self.inverter_port="1502"
         #No more changes required beyond this point
         self.KostalRegister = []
@@ -332,12 +340,21 @@ class kostal_modbusquery:
         result_U8register = U8register.decode_16bit_uint()
         return(result_U8register)
 
-    def WriteS16(self,myadr_dec,value):
-        r1=self.client.write_registers(myadr_dec,value,unit=71)
-        #S16register = BinaryPayloadDecoder.fromRegisters(r1.registers, byteorder=Endian.Big, wordorder=Endian.Little)
-        #result_S16register = S16register.decode_16bit_uint()
-        return(r1)
+    def WriteR32(self,myadr_dec,value):
 
+        myreadregister= self.client.read_holding_registers(myadr_dec,2,unit=71)
+        myreadregister = BinaryPayloadDecoder.fromRegisters(myreadregister.registers, byteorder=Endian.Big, wordorder=Endian.Little)
+        myreadregister =round(myreadregister.decode_32bit_float(),2)
+        print ("I read the value before setting it - value was ", myreadregister)
+        mybuilder = BinaryPayloadBuilder(byteorder=Endian.Big,wordorder=Endian.Little)
+        mybuilder.add_32bit_float(value)
+        mypayload = mybuilder.build()
+        mywriteregister=self.client.write_registers(myadr_dec,mypayload,skip_encode=True, unit=71)
+        """
+        print ("From  subroutine WriteS16 - In theory .... - I should get the value back that we pushed ", value ,"----", myreadregister)
+        print("Register I wrote",mywriteregister)
+        """
+        return(mywriteregister)  
 
     def run(self):
 
@@ -384,57 +401,91 @@ class kostal_modbusquery:
 
 
 if __name__ == "__main__":
-    MQTT_Active = 0
-    print ("Starting QUERY .......... ")
-    Kostalquery = kostal_modbusquery()
-    ts= time.time()
-    Kostalquery.run()
-    te = time.time()
-    print ("Elapsed time is ", te-ts)
+    try:
+        Kostalquery = kostal_modbusquery()
+        print ("Starting QUERY .......... ")
 
-    for item in Kostalquery.Adr.values():
-        if not item[2] is None:
-            print(item[0], item[2])
+        ts= time.time()
+        Kostalquery.run()
+        te = time.time()
+        print ("Elapsed time is ", te-ts)
+    
+        for item in Kostalquery.Adr.values():
+            if not item[2] is None:
+                print(item[0], item[2])
+    
+    
+        print ("Done...")
+        #pprint(Kostalquery.KostalRegister)
+        ##########################################
+        print ("----------------------------------")
+        print ("Doing some Calculations of the received information:")
+    
+        LeftSidePowerGeneration= round(Kostalquery.Qty['Power DC1'][2] + Kostalquery.Qty['Power DC2'][2], 1)
+        print ("Left Side Raw Power Generation of Panels :", LeftSidePowerGeneration)
+        BatteryCharge = round(Kostalquery.Qty['Battery voltage'][2] * Kostalquery.Qty['Actual battery charge -minus or discharge -plus current'][2], 1)
+        print ("BatteryCharge (-) / Discharge(+) is      :", BatteryCharge)
+        TotalHomeconsumption =round((Kostalquery.Qty['Home own consumption from battery'][2]
+                                + Kostalquery.Qty['Home own consumption from grid'][2]
+                                + Kostalquery.Qty['Home own consumption from PV'][2]), 1)
+        PowertoGrid = round(Kostalquery.Qty['Inverter Generation Power (actual)'][2] - TotalHomeconsumption,1)
+        print ("Powerfromgrid (-) /To Grid (+) is        :", PowertoGrid)
+        print ("Total current Home consumption is        :", TotalHomeconsumption)
+        print ("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
 
+        
+        my_parser = argparse.ArgumentParser()
+        my_parser.add_argument('--nargs', nargs='+',
+                               help='Commandline options allow you to also set parameters via the Modbus TCP connection: python kostal-modbusquery.py  -Batcharge 475')
+        my_parser.add_argument('-BatCharge',
+                            action='store',
+                            type = float,
+                            #choices=range(1,999000),
+                            help='Sets the Battery Charge/Discharge [W] . Allowed values: Positve to discharge Battery, negative to charge Battery; Please note: This option only works when you have set your Battery management to External via protocol (Modbus TCP)') 
 
-    print ("Done...")
-    #pprint(Kostalquery.KostalRegister)
-    ##########################################
-    print ("----------------------------------")
-    print ("Doing some Calculations of the received information:")
+        args = vars(my_parser.parse_args())  
+        CommandlineInput = 0
+        for i in args:
+            if (str(args[i]) != 'None'):
+                #print ("Found", i , args[i])
+                CommandlineInput = 1        
+                #print ("CommandlineInput is ", CommandlineInput , " So will obeye what was specified on the commandline")
+        #xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+        # COMMANDLINE ONLY
+        #xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+        if (CommandlineInput == 1):
+            print ("Now Setting Parameters :")
+            if (str(args['BatCharge']) != 'None'):
+                print ("Setting BatCharge to : ",args['BatCharge'] ," W") 
+                Upperlimit = Kostalquery.WriteR32(1034,args['BatCharge'])
+        
+                            
+        MQTT_Active = 0
 
-    LeftSidePowerGeneration= round(Kostalquery.Qty['Power DC1'][2] + Kostalquery.Qty['Power DC2'][2], 1)
-    print ("Left Side Raw Power Generation of Panels :", LeftSidePowerGeneration)
-    BatteryCharge = round(Kostalquery.Qty['Battery voltage'][2] * Kostalquery.Qty['Actual battery charge -minus or discharge -plus current'][2], 1)
-    print ("BatteryCharge (-) / Discharge(+) is      :", BatteryCharge)
-    TotalHomeconsumption =round((Kostalquery.Qty['Home own consumption from battery'][2]
-                               + Kostalquery.Qty['Home own consumption from grid'][2]
-                               + Kostalquery.Qty['Home own consumption from PV'][2]), 1)
-    PowertoGrid = round(Kostalquery.Qty['Inverter Generation Power (actual)'][2] - TotalHomeconsumption,1)
-    print ("Powerfromgrid (-) /To Grid (+) is        :", PowertoGrid)
-    print ("Total current Home consumption is        :", TotalHomeconsumption)
-    print ("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
-    if MQTT_Active == 1:
-        try:
-            import paho.mqtt.client as mqtt
-            broker_address="192.168.178.39"                                                 #IP-Adress of the mqtt broker we subscribe to
-            #Publish to mqtt start
-            print ("Now publishing data to MQTT Broker with IP Adress : ", broker_address)
-
-            modbusmqttclient = mqtt.Client("MyModbusMQTTClient")                            #create new instance
-            modbusmqttclient.connect(broker_address)                                        #connect to broker
-            params = list(Kostalquery.Qty.keys())                                           #We then need to update our params to include the Numpulses key
-
-            if len(params) > 1:
-                for p in sorted(params):
-                    #print ("entering Kostal mqtt publish")
-                    print("{:{width}}: {}".format(p, Kostalquery.Qty[p][2], width=(max(params, key=len))))
-                    TOPIC = ("Haus/Kostal/"+p)
-                    modbusmqttclient.publish(TOPIC,KostalVal[p])
-            elif len(params) == 1:
-                print(val[params[0]])
-                print ("Nothing received from Kostal... ? ")
-        except Exception as ErrorMQTT:
-            print ("Error Kostal MQTT publish", ErrorMQTT)
+        if MQTT_Active == 1:
+            try:
+                import paho.mqtt.client as mqtt
+                broker_address="192.168.178.39"                                                 #IP-Adress of the mqtt broker we subscribe to
+                #Publish to mqtt start
+                print ("Now publishing data to MQTT Broker with IP Adress : ", broker_address)
+    
+                modbusmqttclient = mqtt.Client("MyModbusMQTTClient")                            #create new instance
+                modbusmqttclient.connect(broker_address)                                        #connect to broker
+                params = list(Kostalquery.Qty.keys())                                           #We then need to update our params to include the Numpulses key
+    
+                if len(params) > 1:
+                    for p in sorted(params):
+                        #print ("entering Kostal mqtt publish")
+                        print("{:{width}}: {}".format(p, Kostalquery.Qty[p][2], width=(max(params, key=len))))
+                        TOPIC = ("Haus/Kostal/"+p)
+                        modbusmqttclient.publish(TOPIC,KostalVal[p])
+                elif len(params) == 1:
+                    print(val[params[0]])
+                    print ("Nothing received from Kostal... ? ")
+            except Exception as ErrorMQTT:
+                print ("Error Kostal MQTT publish", ErrorMQTT)
+                
+    except Exception as Badmain:
+        print ("Ran into error executing Main kostal-RESTAPI Routine :", Badmain)                
 
 
