@@ -113,7 +113,9 @@
 #
 # Update June 12 2021
 # Fixed programming error when function Kostalquery.run is called mutliple times
-
+#
+# Update June 20 2022
+# Fixed programing error when publishing to MQTT 
 
 
 
@@ -477,13 +479,15 @@ if __name__ == "__main__":
                 modbusmqttclient = mqtt.Client("MyModbusMQTTClient")                            #create new instance
                 modbusmqttclient.connect(broker_address)                                        #connect to broker
                 params = list(Kostalquery.Qty.keys())                                           #We then need to update our params to include the Numpulses key
-    
+
                 if len(params) > 1:
+                    print ("entering Kostal mqtt publish")
                     for p in sorted(params):
-                        print ("entering Kostal mqtt publish")
-                        print("{:{width}}: {}".format(p, Kostalquery.Qty[p][3], width=(max(params, key=len))))
+                        # print("{:{width}}: {}".format(p, Kostalquery.Qty[p][3], width=(max(params, key=len)))) # Seems to not work in Python 3.10 anymore?
+                        print(f'{p}: {Kostalquery.Qty[p][3]}')
+                        #print(p, Kostalquery.Qty[p][3])
                         TOPIC = ("Haus/Kostal/"+p)
-                        modbusmqttclient.publish(TOPIC,KostalVal[p])
+                        modbusmqttclient.publish(TOPIC,Kostalquery.Qty[p][3])
                 elif len(params) == 1:
                     print(val[params[0]])
                     print ("Nothing received from Kostal... ? ")
