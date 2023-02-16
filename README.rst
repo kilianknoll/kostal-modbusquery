@@ -33,6 +33,15 @@ Installation
 ------------
 Clone / Download repo and use kostal-modbusquery.py 
 
+Updates
+------------
+Adapted to later versions of pymodbus
+Updates to support Python 3.9, 3.10
+
+Usage
+------------
+To see commandline options:
+python kostal-modbusquery --help
 
 Getting started
 ---------------
